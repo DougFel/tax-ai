@@ -1,45 +1,42 @@
+from langchain.chat_models import ChatOpenAI
+from langchain.schema.runnable import Runnable
+from langchain.chains import RetrievalQA
 from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.docstore.document import Document
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import RetrievalQA
 from dotenv import load_dotenv
 import os
 
-# Carrega variáveis do .env ou Streamlit Secrets
 load_dotenv()
 
-# Caminho da base legal (txts)
+# Carrega os arquivos de legislação
 CAMINHO_DOCUMENTOS = "data/legislacao"
 documentos = []
 
-for nome_arquivo in os.listdir(CAMINHO_DOCUMENTOS):
-    caminho = os.path.join(CAMINHO_DOCUMENTOS, nome_arquivo)
+for nome in os.listdir(CAMINHO_DOCUMENTOS):
+    caminho = os.path.join(CAMINHO_DOCUMENTOS, nome)
     with open(caminho, "r", encoding="utf-8") as f:
         conteudo = f.read()
-        documentos.append(Document(page_content=conteudo, metadata={"fonte": nome_arquivo}))
+        documentos.append(Document(page_content=conteudo, metadata={"fonte": nome}))
 
-# Embeddings com modelo leve da Hugging Face
+# Criação dos vetores
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-# Indexa os documentos em memória com FAISS
 banco = FAISS.from_documents(documentos, embedding)
 
-# LLM via OpenRouter (compatível com LangChain)
-from langchain.chat_models import ChatOpenAI
-
+# Conexão com a OpenRouter via LangChain
 modelo = ChatOpenAI(
-    model_name="mistralai/mistral-7b-instruct",  # ou outro modelo do OpenRouter
     openai_api_base="https://openrouter.ai/api/v1",
     openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+    model_name="mistralai/mistral-7b-instruct",  # ou outro disponível
     temperature=0.2,
     request_timeout=60,
     max_retries=3,
 )
 
-# Conecta a base ao modelo via RetrievalQA
+# Conecta tudo com RAG
 qa = RetrievalQA.from_chain_type(llm=modelo, retriever=banco.as_retriever())
 
-# Função chamada pela interface
+# Interface principal
 def consultar(pergunta):
     return qa.run(pergunta)
+
