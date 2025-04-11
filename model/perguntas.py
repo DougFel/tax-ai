@@ -51,8 +51,9 @@ qa = RetrievalQA.from_chain_type(
 
 def consultar(pergunta: str) -> str:
     try:
-        resultado = qa.run(pergunta)
-        return resultado
+        resultado = qa.invoke({"query": pergunta})
+        return resultado["result"]
     except Exception as e:
         return f"Erro ao processar sua pergunta: {str(e)}"
+
 
