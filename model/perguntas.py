@@ -6,25 +6,27 @@ from langchain_community.chat_models import ChatOpenAI
 from dotenv import load_dotenv
 import os
 
-# Carrega variáveis do .env ou dos secrets do Streamlit Cloud
+# Carrega variáveis do .env ou do secrets do Streamlit Cloud
 load_dotenv()
 
-# Caminho dos arquivos legais
+# Caminho onde estão os documentos legais
 CAMINHO_DOCUMENTOS = "data/legislacao"
 documentos = []
 
-# Lê os documentos da pasta
-for nome in os.listdir(CAMINHO_DOCUMENTOS):
-    caminho = os.path.join(CAMINHO_DOCUMENTOS, nome)
+# Carrega cada documento da pasta como um objeto Document
+for nome_arquivo in os.listdir(CAMINHO_DOCUMENTOS):
+    caminho = os.path.join(CAMINHO_DOCUMENTOS, nome_arquivo)
     with open(caminho, "r", encoding="utf-8") as f:
         conteudo = f.read()
-        documentos.append(Document(page_content=conteudo, metadata={"fonte": nome}))
+        documentos.append(Document(page_content=conteudo, metadata={"fonte": nome_arquivo}))
 
-# Embedding com modelo leve da HuggingFace
+# Criação de embeddings com modelo leve da HuggingFace
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+# Indexação vetorial com FAISS (compatível com Streamlit Cloud)
 banco = FAISS.from_documents(documentos, embedding)
 
-# Conexão correta com OpenRouter via LangChain Community
+# Modelo LLM via OpenRouter usando biblioteca compatível
 modelo = ChatOpenAI(
     model_name="mistralai/mistral-7b-instruct",
     openai_api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -34,10 +36,10 @@ modelo = ChatOpenAI(
     max_retries=3
 )
 
-# Integração com QA
+# Cria a cadeia de QA com busca vetorial
 qa = RetrievalQA.from_chain_type(llm=modelo, retriever=banco.as_retriever())
 
-# Função principal
+# Função principal usada no app
 def consultar(pergunta):
     return qa.run(pergunta)
 
