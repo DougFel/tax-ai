@@ -1,68 +1,62 @@
-import os
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.docstore.document import Document
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
-from langchain.vectorstores import FAISS
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.prompts import PromptTemplate
-from langchain.document_loaders import TextLoader
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores import FAISS
-from dotenv import load_dotenv
-import logging
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain.schema.messages import HumanMessage
+from langchain.callbacks.manager import CallbackManagerForLLMRun
 
-# Carregar variáveis de ambiente
+import requests
+import os
+from dotenv import load_dotenv
+
 load_dotenv()
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# --- MODELO VIA OPENROUTER ---
+class OpenRouterLLM(BaseChatModel):
+    def _generate(self, messages, stop=None, run_manager: CallbackManagerForLLMRun = None, **kwargs):
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+            "Content-Type": "application/json",
+        }
 
-# Configurar a chave da API OpenAI
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    logger.error("A chave da API OpenAI não está configurada.")
-    raise ValueError("A chave da API OpenAI não está configurada.")
+        payload = {
+            "model": "meta-llama/llama-3-8b-instruct",  # ou mistralai/mistral-7b-instruct
+            "messages": [{"role": "user", "content": messages[0].content}],
+            "temperature": 0.2,
+        }
 
-# Inicializar o modelo de linguagem
-llm = ChatOpenAI(api_key=openai_api_key)
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
 
-# Carregar e processar documentos
-loader = TextLoader("documentos.txt", encoding="utf-8")
-documents = loader.load()
+        if response.status_code != 200:
+            print("🔴 ERRO na API OpenRouter:", response.status_code, response.text)
+            raise Exception("Erro ao chamar o modelo via OpenRouter.")
 
-# Dividir os documentos em partes menores
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-texts = text_splitter.split_documents(documents)
+        return self._create_chat_result(response.json()["choices"][0]["message"]["content"])
 
-# Gerar embeddings
-embeddings = OpenAIEmbeddings(api_key=openai_api_key)
+    def _create_chat_result(self, text):
+        from langchain.schema.output import ChatGeneration, ChatResult
+        return ChatResult(generations=[ChatGeneration(message=HumanMessage(content=text))])
 
-# Criar o índice FAISS
-docsearch = FAISS.from_documents(texts, embeddings)
+    @property
+    def _llm_type(self) -> str:
+        return "openrouter-custom"
 
-# Definir o template do prompt
-prompt_template = PromptTemplate(
-    input_variables=["context", "question"],
-    template="Contexto: {context}\n\nPergunta: {question}"
-)
+# --- INDEXAÇÃO E CONSULTA ---
+CAMINHO_DOCUMENTOS = "data/legislacao"
+documentos = []
 
-# Criar a cadeia de QA
-qa = RetrievalQA.from_chain_type(
-    llm=llm,
-    retriever=docsearch.as_retriever(),
-    chain_type_kwargs={"prompt": prompt_template}
-)
+for nome_arquivo in os.listdir(CAMINHO_DOCUMENTOS):
+    caminho = os.path.join(CAMINHO_DOCUMENTOS, nome_arquivo)
+    with open(caminho, "r", encoding="utf-8") as f:
+        conteudo = f.read()
+        documentos.append(Document(page_content=conteudo, metadata={"fonte": nome_arquivo}))
+
+embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+banco = FAISS.from_documents(documentos, embedding)
+
+modelo = OpenRouterLLM()
+qa = RetrievalQA.from_chain_type(llm=modelo, retriever=banco.as_retriever())
 
 def consultar(pergunta):
-    try:
-        resposta = qa.run(pergunta)
-        return resposta
-    except Exception as e:
-        logger.error(f"Erro ao processar a pergunta: {e}")
-        return "Desculpe, ocorreu um erro ao processar sua pergunta."
-
-# Exemplo de uso
-if __name__ == "__main__":
-    pergunta = "Qual é a alíquota do imposto de renda para empresas no Brasil?"
-    resposta = consultar(pergunta)
-    print(resposta)
+    return qa.run(pergunta)
