@@ -1,23 +1,6 @@
-# Framework principal
 langchain
-langchain-community
-langchain-core
-
-# Armazenamento vetorial
-faiss-cpu
-sentence-transformers
-
-# Embeddings
-transformers
-accelerate
-sentencepiece
-
-# Streamlit app
 streamlit
-python-dotenv
-
-# Cliente HTTP
-requests
-
-# OpenRouter utiliza a lib da OpenAI
 openai
+python-dotenv
+sentence-transformers
+faiss-cpu
