@@ -3,9 +3,8 @@ langchain-community
 openai==0.27.10
 transformers
 torch
-accelerate
-faiss-cpu
 sentence-transformers
+faiss-cpu
 python-dotenv
 streamlit
 
