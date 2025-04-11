@@ -1,6 +1,22 @@
-langchain
-streamlit
-openai
-python-dotenv
-sentence-transformers
-faiss-cpu
+# Núcleo da IA e linguagem natural
+langchain==0.1.16
+langchain-core==0.1.42
+langchain-community==0.0.34
+
+# Vetorstore FAISS
+faiss-cpu==1.7.4
+
+# Embeddings
+sentence-transformers==2.7.0
+huggingface-hub==0.21.4
+
+# Cliente para LLMs compatíveis com OpenAI API
+openai==1.23.6
+
+# Ambiente e app web
+python-dotenv==1.0.1
+streamlit==1.32.2
+
+# Outros auxiliares
+tiktoken==0.6.0
+requests==2.31.0
