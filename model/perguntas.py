@@ -12,10 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ------------------------
-# MODELO OPENROUTER CUSTOM
-# ------------------------
-
+# --- MODELO VIA OPENROUTER ---
 class OpenRouterLLM(BaseChatModel):
     def _generate(self, messages, stop=None, run_manager: CallbackManagerForLLMRun = None, **kwargs):
         headers = {
@@ -24,7 +21,7 @@ class OpenRouterLLM(BaseChatModel):
         }
 
         payload = {
-            "model": "mistralai/mistral-7b-instruct",
+            "model": "meta-llama/llama-3-8b-instruct",  # ou mistralai/mistral-7b-instruct
             "messages": [{"role": "user", "content": messages[0].content}],
             "temperature": 0.2,
         }
@@ -32,7 +29,8 @@ class OpenRouterLLM(BaseChatModel):
         response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
 
         if response.status_code != 200:
-            raise Exception(f"OpenRouter API error: {response.status_code} - {response.text}")
+            print("🔴 ERRO na API OpenRouter:", response.status_code, response.text)
+            raise Exception("Erro ao chamar o modelo via OpenRouter.")
 
         return self._create_chat_result(response.json()["choices"][0]["message"]["content"])
 
@@ -44,10 +42,7 @@ class OpenRouterLLM(BaseChatModel):
     def _llm_type(self) -> str:
         return "openrouter-custom"
 
-# ------------------------
-# INDEXAÇÃO E QA
-# ------------------------
-
+# --- INDEXAÇÃO E CONSULTA ---
 CAMINHO_DOCUMENTOS = "data/legislacao"
 documentos = []
 
@@ -65,7 +60,3 @@ qa = RetrievalQA.from_chain_type(llm=modelo, retriever=banco.as_retriever())
 
 def consultar(pergunta):
     return qa.run(pergunta)
-
-
-
-
