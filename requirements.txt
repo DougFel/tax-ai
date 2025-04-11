@@ -1,11 +1,9 @@
 langchain
 langchain-community
-openai==0.27.10
+streamlit
+faiss-cpu
 transformers
 torch
 sentence-transformers
-faiss-cpu
+requests
 python-dotenv
-streamlit
-
-
