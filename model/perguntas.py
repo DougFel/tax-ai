@@ -1,62 +1,58 @@
-from langchain.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.docstore.document import Document
-from langchain.chains import RetrievalQA
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain.schema.messages import HumanMessage
-from langchain.callbacks.manager import CallbackManagerForLLMRun
-
-import requests
 import os
 from dotenv import load_dotenv
+from langchain.chains import RetrievalQA
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.document_loaders import TextLoader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.chat_models import ChatOpenAI
 
+# Carrega as variáveis de ambiente
 load_dotenv()
 
-# --- MODELO VIA OPENROUTER ---
-class OpenRouterLLM(BaseChatModel):
-    def _generate(self, messages, stop=None, run_manager: CallbackManagerForLLMRun = None, **kwargs):
-        headers = {
-            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
-            "Content-Type": "application/json",
-        }
+# Configuração da chave de API OpenRouter
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    raise ValueError("OPENROUTER_API_KEY não encontrada no .env")
 
-        payload = {
-            "model": "meta-llama/llama-3-8b-instruct",  # ou mistralai/mistral-7b-instruct
-            "messages": [{"role": "user", "content": messages[0].content}],
-            "temperature": 0.2,
-        }
-
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-
-        if response.status_code != 200:
-            print("🔴 ERRO na API OpenRouter:", response.status_code, response.text)
-            raise Exception("Erro ao chamar o modelo via OpenRouter.")
-
-        return self._create_chat_result(response.json()["choices"][0]["message"]["content"])
-
-    def _create_chat_result(self, text):
-        from langchain.schema.output import ChatGeneration, ChatResult
-        return ChatResult(generations=[ChatGeneration(message=HumanMessage(content=text))])
-
-    @property
-    def _llm_type(self) -> str:
-        return "openrouter-custom"
-
-# --- INDEXAÇÃO E CONSULTA ---
+# Caminho para os arquivos
 CAMINHO_DOCUMENTOS = "data/legislacao"
 documentos = []
 
+# Leitura dos arquivos de legislação
 for nome_arquivo in os.listdir(CAMINHO_DOCUMENTOS):
     caminho = os.path.join(CAMINHO_DOCUMENTOS, nome_arquivo)
     with open(caminho, "r", encoding="utf-8") as f:
         conteudo = f.read()
-        documentos.append(Document(page_content=conteudo, metadata={"fonte": nome_arquivo}))
+        documentos.append(conteudo)
+
+# Separação e vetorização
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+docs = text_splitter.create_documents(documentos)
 
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-banco = FAISS.from_documents(documentos, embedding)
+banco = FAISS.from_documents(docs, embedding)
 
-modelo = OpenRouterLLM()
-qa = RetrievalQA.from_chain_type(llm=modelo, retriever=banco.as_retriever())
+# Configuração do modelo via OpenRouter
+modelo = ChatOpenAI(
+    model_name="mistralai/mistral-7b-instruct",
+    openai_api_key=OPENROUTER_API_KEY,
+    openai_api_base="https://openrouter.ai/api/v1",
+    openai_organization="",  # Deixe vazio se não tiver
+    request_timeout=60,
+    max_retries=3,
+)
 
-def consultar(pergunta):
-    return qa.run(pergunta)
+qa = RetrievalQA.from_chain_type(
+    llm=modelo,
+    retriever=banco.as_retriever(),
+    return_source_documents=True
+)
+
+def consultar(pergunta: str) -> str:
+    try:
+        resultado = qa.run(pergunta)
+        return resultado
+    except Exception as e:
+        return f"Erro ao processar sua pergunta: {str(e)}"
+
