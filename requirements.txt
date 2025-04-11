@@ -1,6 +1,8 @@
-langchain
+streamlit
 openai
+langchain
+langchain-community
 chromadb
-fastapi
-uvicorn
+sentence-transformers
 python-dotenv
+
