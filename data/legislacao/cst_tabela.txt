@@ -1,0 +1,9 @@
+
+Tabela CST Simplificada
+------------------------
+000 - Tributada integralmente
+010 - Tributada com cobrança de ICMS por ST
+020 - Com redução de base de cálculo
+040 - Isenta
+041 - Não tributada
+060 - ICMS cobrado anteriormente por ST

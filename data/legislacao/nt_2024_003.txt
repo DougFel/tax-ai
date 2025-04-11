@@ -1,0 +1,10 @@
+
+Nota Técnica 2024.003 - Resumo
+------------------------------
+Estabelece a obrigatoriedade da inclusão do número do receituário agronômico na emissão da NF-e para defensivos agrícolas.
+
+Obrigatoriedade a partir de: 01/10/2024
+Aplica-se a operações com consumidor final e agroindústrias.
+
+Campos afetados:
+- infNFe > det > prod > nRECOPI (caso aplicável)

@@ -1,0 +1,9 @@
+
+Exemplos de Perguntas para Testes da Tax AI
+-------------------------------------------
+1. Qual CFOP usar para venda de mercadoria com isenção dentro de SP?
+2. Quando usar CST 060?
+3. Preciso incluir receituário agronômico em NF de defensivo agrícola?
+4. Qual alíquota de ICMS aplicar em venda de insumos para o estado do PE?
+5. Venda interestadual com substituição usa qual CFOP?
+6. A Lei 87/96 menciona isenção para qual tipo de produto?

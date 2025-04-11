@@ -1,0 +1,9 @@
+
+ICMS por Estado (alíquotas padrão internas)
+--------------------------------------------
+SP - 18%
+MG - 18%
+GO - 17%
+RS - 18%
+PE - 18%
+ES - 17%

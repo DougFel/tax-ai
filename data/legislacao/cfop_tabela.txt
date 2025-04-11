@@ -1,0 +1,8 @@
+
+Tabela CFOP Simplificada
+-------------------------
+5101 - Venda de produção do estabelecimento
+5102 - Venda de mercadoria adquirida ou recebida de terceiros
+6101 - Venda de produção do estabelecimento para fora do estado
+6102 - Venda de mercadoria adquirida de terceiros para fora do estado
+5405 - Venda de mercadoria sujeita a ST
