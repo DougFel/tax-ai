@@ -2,13 +2,12 @@ from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.docstore.document import Document
 from langchain.chains import RetrievalQA
-from langchain_community.chat_models import ChatOpenAI  # <- CORRETO PARA OPENROUTER
+from langchain_community.chat_models import ChatOpenAI
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-# Carregamento da base legal
 CAMINHO_DOCUMENTOS = "data/legislacao"
 documentos = []
 
@@ -18,11 +17,9 @@ for nome in os.listdir(CAMINHO_DOCUMENTOS):
         conteudo = f.read()
         documentos.append(Document(page_content=conteudo, metadata={"fonte": nome}))
 
-# Embeddings com HuggingFace
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 banco = FAISS.from_documents(documentos, embedding)
 
-# MODELO OpenRouter via LangChain Community
 modelo = ChatOpenAI(
     model_name="mistralai/mistral-7b-instruct",
     openai_api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -32,10 +29,10 @@ modelo = ChatOpenAI(
     max_retries=3,
 )
 
-# Pipeline de consulta
 qa = RetrievalQA.from_chain_type(llm=modelo, retriever=banco.as_retriever())
 
 def consultar(pergunta):
     return qa.run(pergunta)
+
 
 

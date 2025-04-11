@@ -1,11 +1,10 @@
-streamlit
 langchain
 langchain-community
-openai
+streamlit
 transformers
-accelerate
 torch
-faiss-cpu
-chromadb
+accelerate
 sentence-transformers
+faiss-cpu
 python-dotenv
+
